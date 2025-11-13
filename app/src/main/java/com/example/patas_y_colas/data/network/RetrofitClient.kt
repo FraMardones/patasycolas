@@ -24,7 +24,7 @@ object TokenManager {
 
 object RetrofitClient {
     // Esta es la URL que tenías en tu archivo, asegúrate que sea la de tu Render activo
-    private const val BASE_URL = "https://backend-movil-1hs0.onrender.com"
+    private const val BASE_URL = "https://backend-movil-1hs0.onrender.com/"
 
     fun getClient(context: Context): ApiService {
         val logging = HttpLoggingInterceptor().apply {

@@ -72,7 +72,14 @@ fun MenuScreen() {
                     },
                     onFormAction = { action ->
                         when(action) {
-                            is FormAction.Save -> if (action.pet.id == 0) viewModel.insert(action.pet) else viewModel.update(action.pet)
+                            // CORRECCIÓN 1: Verificamos si el ID es null o 0 para saber si es nuevo
+                            is FormAction.Save -> {
+                                if (action.pet.id == null || action.pet.id == 0) {
+                                    viewModel.insert(action.pet)
+                                } else {
+                                    viewModel.update(action.pet)
+                                }
+                            }
                             is FormAction.Delete -> viewModel.delete(action.pet)
                         }
                         isFormVisible = false
@@ -87,7 +94,14 @@ fun MenuScreen() {
                     onAddPetClicked = { selectedPet = null },
                     onFormAction = { action ->
                         when(action) {
-                            is FormAction.Save -> if (action.pet.id == 0) viewModel.insert(action.pet) else viewModel.update(action.pet)
+                            // CORRECCIÓN 2: Aplicamos la misma lógica para pantallas grandes
+                            is FormAction.Save -> {
+                                if (action.pet.id == null || action.pet.id == 0) {
+                                    viewModel.insert(action.pet)
+                                } else {
+                                    viewModel.update(action.pet)
+                                }
+                            }
                             is FormAction.Delete -> viewModel.delete(action.pet)
                         }
                         selectedPet = null
