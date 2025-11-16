@@ -23,14 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 // --- Imports Añadidos ---
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraph.Companion.findStartDestination // <-- Importado para el logout
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 // --- Fin Imports ---
 import com.example.patas_y_colas.PetApplication
+import com.example.patas_y_colas.data.network.TokenManager // <-- IMPORTADO PARA EL NOMBRE
 import com.example.patas_y_colas.model.Pet
 import com.example.patas_y_colas.model.VaccineRecord // Importa VaccineRecord
-import com.example.patas_y_colas.repository.PetRepository
 import com.example.patas_y_colas.ui.screens.menu.components.HeaderSection
 import com.example.patas_y_colas.ui.theme.screens.menu.components.PetForm
 import com.example.patas_y_colas.ui.theme.*
@@ -54,6 +54,13 @@ fun MenuScreen(
 
     val windowSizeClass = rememberWindowSizeClass()
 
+    // --- ¡NUEVO! OBTENER NOMBRE DE USUARIO ---
+    val context = LocalContext.current
+    val userName by remember {
+        mutableStateOf(TokenManager.getUserName(context))
+    }
+    // --- FIN ---
+
     if (windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact) {
         isFormVisible = true
         if (selectedPet == null && pets.isNotEmpty()) {
@@ -61,7 +68,7 @@ fun MenuScreen(
         }
     }
 
-    // --- LÓGICA DE LOGOUT (CORREGIDA) ---
+    // --- LÓGICA DE LOGOUT (Corregida) ---
     val repository = (application as PetApplication).repository
     val scope = rememberCoroutineScope()
 
@@ -70,15 +77,11 @@ fun MenuScreen(
             // 1. Llama a la función del repositorio que borra los tokens
             repository.logout()
 
-            // 2. Navega al login y limpia el historial (ESTA ES LA PARTE CORREGIDA)
-            navController.navigate("login") { // <-- RUTA CORREGIDA a "login"
-
-                // Borra todo HASTA la pantalla inicial del grafo ("portada")
+            // 2. Navega al login y limpia el historial
+            navController.navigate("login") { // Usa la ruta "login"
                 popUpTo(navController.graph.findStartDestination().id) {
-                    inclusive = true // También elimina "portada" de la pila
+                    inclusive = true
                 }
-
-                // Asegúrate de que "login" sea la única pantalla en la pila
                 launchSingleTop = true
             }
         }
@@ -121,7 +124,8 @@ fun MenuScreen(
                     },
                     // --- Pasamos la función y el controller ---
                     onLogoutClicked = onLogoutClicked,
-                    navController = navController
+                    navController = navController,
+                    userName = userName // <-- PASAR NOMBRE
                 )
             }
             else -> {
@@ -146,7 +150,8 @@ fun MenuScreen(
                     },
                     // --- Pasamos la función y el controller ---
                     onLogoutClicked = onLogoutClicked,
-                    navController = navController
+                    navController = navController,
+                    userName = userName // <-- PASAR NOMBRE
                 )
             }
         }
@@ -163,7 +168,8 @@ fun MenuScreenCompact(
     onFormAction: (FormAction) -> Unit,
     // --- Añadimos los parámetros ---
     onLogoutClicked: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    userName: String? // <-- RECIBIR NOMBRE
 ) {
     Column(
         modifier = Modifier
@@ -178,8 +184,8 @@ fun MenuScreenCompact(
             selectedPet = selectedPet,
             onPetSelected = onPetSelected,
             onAddPetClicked = onAddPetClicked,
-            // --- Lo pasamos al Header ---
-            onLogoutClicked = onLogoutClicked
+            onLogoutClicked = onLogoutClicked,
+            userName = userName // <-- PASAR NOMBRE
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -216,7 +222,8 @@ fun MenuScreenExpanded(
     onFormAction: (FormAction) -> Unit,
     // --- Añadimos los parámetros ---
     onLogoutClicked: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    userName: String? // <-- RECIBIR NOMBRE
 ) {
     Row(
         modifier = Modifier
@@ -236,7 +243,8 @@ fun MenuScreenExpanded(
                 onPetSelected = onPetSelected,
                 onAddPetClicked = onAddPetClicked,
                 // --- Lo pasamos al Header ---
-                onLogoutClicked = onLogoutClicked
+                onLogoutClicked = onLogoutClicked,
+                userName = userName // <-- PASAR NOMBRE
             )
             Spacer(modifier = Modifier.height(24.dp))
             ReminderSection(pets = pets)
@@ -279,7 +287,7 @@ private fun ReminderSection(pets: List<Pet>) {
 
             vaccineList.filter { vaccine ->
                 if (vaccine.vaccineName.isNotBlank() &&
-                    vaccine.date.isNotBlank()) {
+                    vaccine.date.isNotBlank()) { // No es necesario chequear null si no son nulos
                     try {
                         val vaccineDate = dateFormat.parse(vaccine.date)
                         vaccineDate != null && !vaccineDate.before(today)
@@ -308,8 +316,8 @@ private fun ReminderSection(pets: List<Pet>) {
             reminders.forEach { (petName, vaccine) ->
                 ReminderCard(
                     petName = petName,
-                    vaccineName = vaccine.vaccineName, // Ya no puede ser null por el filtro
-                    date = vaccine.date // Ya no puede ser null por el filtro
+                    vaccineName = vaccine.vaccineName,
+                    date = vaccine.date
                 )
             }
         }

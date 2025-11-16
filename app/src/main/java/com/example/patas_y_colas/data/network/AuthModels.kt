@@ -13,9 +13,8 @@ data class RegisterRequest(
     val password: String
 )
 
-// --- CORRECCIÓN AQUÍ ---
-// Añadimos el campo refreshToken para que coincida con el backend
 data class AuthResponse(
     val token: String,
-    val refreshToken: String
+    val refreshToken: String,
+    val firstname: String? // <-- AÑADIDO
 )

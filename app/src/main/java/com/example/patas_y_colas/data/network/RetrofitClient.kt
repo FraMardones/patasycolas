@@ -13,13 +13,15 @@ object TokenManager {
     // Nuevas claves para ambos tokens
     private const val KEY_ACCESS_TOKEN = "jwt_access_token"
     private const val KEY_REFRESH_TOKEN = "jwt_refresh_token"
+    private const val KEY_USER_NAME = "user_name" // <-- AÑADIDO
 
-    // Guardamos ambos tokens
-    fun saveTokens(context: Context, accessToken: String, refreshToken: String) {
+    // Guardamos ambos tokens y el nombre (firstname es nullable)
+    fun saveTokens(context: Context, accessToken: String, refreshToken: String, firstname: String?) { // <-- MODIFICADO
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(KEY_ACCESS_TOKEN, accessToken)
             .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .putString(KEY_USER_NAME, firstname) // <-- AÑADIDO (putString acepta null)
             .apply()
     }
 
@@ -33,6 +35,13 @@ object TokenManager {
     fun getRefreshToken(context: Context): String? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_REFRESH_TOKEN, null)
+    }
+
+    // --- ¡NUEVA FUNCIÓN! ---
+    // Obtenemos el nombre del usuario
+    fun getUserName(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_USER_NAME, null)
     }
 
     // Borramos todo (para el logout)
@@ -113,8 +122,13 @@ class TokenAuthenticator(private val context: Context) : Authenticator {
             if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
                 val newTokens = refreshResponse.body()!!
 
-                // 3. Guardamos los nuevos tokens
-                TokenManager.saveTokens(context, newTokens.token, newTokens.refreshToken)
+                // 3. Guardamos los nuevos tokens (y el firstname, si vino)
+                TokenManager.saveTokens(
+                    context,
+                    newTokens.token,
+                    newTokens.refreshToken,
+                    newTokens.firstname // <-- Pasa el firstname (que puede ser null)
+                )
 
                 // 4. Volvemos a crear la petición original, pero con el NUEVO token
                 return response.request.newBuilder()

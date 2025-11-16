@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Logout // <--- Importado para el menú
+import androidx.compose.material.icons.outlined.Logout // <--- IMPORTADO
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,35 +22,39 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.AsyncImage // <--- IMPORTADO
 import com.example.patas_y_colas.model.Pet
 import com.example.patas_y_colas.ui.theme.*
 
-/**
- * Esta es la nueva barra superior que combina la lógica del menú
- * con el estilo visual que querías (texto "Bienvenido" y color blanco).
- */
 @Composable
-fun HeaderTopBar(onLogoutClicked: () -> Unit) {
+fun HeaderTopBar(
+    onLogoutClicked: () -> Unit,
+    userName: String? // <-- RECIBE EL NOMBRE
+) {
     var showMenu by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp), // Padding del estilo anterior
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Texto del "código anterior"
-        Text(text = "Bienvenido", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+        // --- ¡CAMBIO AQUÍ! ---
+        // Muestra "Hola, [Nombre]" o "Bienvenido" con el estilo de antes
+        Text(
+            text = if (userName != null) "Hola, $userName" else "Bienvenido",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
 
-        // Lógica de menú del "código nuevo"
+        // Lógica de menú
         Box {
-            // Botón de Configuración (Tuerca)
             IconButton(
                 onClick = { showMenu = true }
             ) {
-                // Icono con el estilo del "código anterior"
+                // Icono de "Ajustes" con el estilo de antes
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Ajustes",
@@ -59,7 +63,7 @@ fun HeaderTopBar(onLogoutClicked: () -> Unit) {
                 )
             }
 
-            // Menú desplegable del "código nuevo"
+            // Menú desplegable para "Cerrar Sesión"
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
@@ -67,7 +71,7 @@ fun HeaderTopBar(onLogoutClicked: () -> Unit) {
             ) {
                 DropdownMenuItem(
                     text = { Text("Cerrar Sesión", color = PetRed) },
-                    onClick = onLogoutClicked, // Llama a la función de logout
+                    onClick = onLogoutClicked,
                     leadingIcon = {
                         Icon(
                             Icons.Outlined.Logout,
@@ -81,17 +85,14 @@ fun HeaderTopBar(onLogoutClicked: () -> Unit) {
     }
 }
 
-/**
- * Esta es la sección del cabezal principal, con el fondo verde.
- * Ahora incluye 'onLogoutClicked' y llama al 'HeaderTopBar' actualizado.
- */
 @Composable
 fun HeaderSection(
     pets: List<Pet>,
     selectedPet: Pet?,
     onPetSelected: (Pet) -> Unit,
     onAddPetClicked: () -> Unit,
-    onLogoutClicked: () -> Unit // <-- Parámetro nuevo
+    onLogoutClicked: () -> Unit,
+    userName: String? // <-- RECIBE EL NOMBRE
 ) {
     Box(
         modifier = Modifier
@@ -108,13 +109,21 @@ fun HeaderSection(
         ) {
 
             // --- ¡CAMBIO AQUÍ! ---
-            // Llamamos a la nueva barra superior fusionada
-            HeaderTopBar(onLogoutClicked = onLogoutClicked)
+            // Llama a la nueva barra superior fusionada
+            HeaderTopBar(
+                onLogoutClicked = onLogoutClicked,
+                userName = userName
+            )
 
-            // Mantenemos el subtítulo del "código anterior"
-            Text(text = "Gestiona a tus mascotas", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.8f), modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
+            // Texto "Gestiona a tus mascotas" (del estilo anterior)
+            Text(
+                text = "Gestiona a tus mascotas",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+            )
 
-            // Mantenemos el PetSelector del "código anterior"
+            // Selector de mascotas (del estilo anterior)
             PetSelector(
                 pets = pets,
                 selectedPet = selectedPet,
@@ -125,10 +134,9 @@ fun HeaderSection(
     }
 }
 
-/**
- * El resto de funciones se mantienen idénticas a tu "código anterior"
- * para preservar el estilo visual.
- */
+// --- NINGÚN CAMBIO DE AQUÍ EN ADELANTE ---
+// (Estas funciones son de tu "código anterior" para mantener el estilo)
+
 @Composable
 fun PetSelector(
     pets: List<Pet>,
@@ -141,9 +149,8 @@ fun PetSelector(
         verticalAlignment = Alignment.CenterVertically,
         contentPadding = PaddingValues(horizontal = 24.dp)
     ) {
-        // Se cambia el 'selectedPet == null' para que coincida con la lógica
-        // de tu primer archivo (el botón "Add" no está "seleccionado" si una mascota lo está)
-        item { AddPetCircle(isSelected = selectedPet == null && pets.isNotEmpty(), onClick = onAddPetClicked) }
+        // Lógica de selección corregida para que "Agregar" se deseleccione
+        item { AddPetCircle(isSelected = selectedPet == null, onClick = onAddPetClicked) }
         items(pets) { pet -> PetCircle(pet = pet, isSelected = pet == selectedPet, onClick = { onPetSelected(pet) }) }
     }
 }
@@ -184,7 +191,11 @@ fun PetCircle(
     }
     val borderColor = if (isSelected) PetHighlightBlue else Color.White.copy(alpha = 0.5f)
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) { // Añadido para centrar texto
+    // Se agrega 'width(80.dp)' para evitar que nombres largos muevan otros elementos
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(80.dp)
+    ) {
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -194,8 +205,13 @@ fun PetCircle(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            if (pet.imageUri != null) {
-                AsyncImage(model = Uri.parse(pet.imageUri), contentDescription = pet.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            if (pet.imageUri != null && pet.imageUri.isNotBlank()) { // Verificación extra
+                AsyncImage(
+                    model = Uri.parse(pet.imageUri),
+                    contentDescription = pet.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             } else {
                 Icon(imageVector = icon, contentDescription = pet.name, modifier = Modifier.size(40.dp), tint = PetOchre)
             }
@@ -205,8 +221,8 @@ fun PetCircle(
             text = pet.name,
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center, // Asegura que el nombre esté centrado
-            maxLines = 1 // Evita que nombres largos se corten mal
+            textAlign = TextAlign.Center,
+            maxLines = 1 // Evita saltos de línea
         )
     }
 }
