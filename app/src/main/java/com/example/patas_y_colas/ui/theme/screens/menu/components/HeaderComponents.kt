@@ -1,6 +1,6 @@
 package com.example.patas_y_colas.ui.screens.menu.components
 
-import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,137 +8,143 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
+// --- IMPORTS AÑADIDOS ---
+import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.runtime.*
+// --- FIN DE IMPORTS AÑADIDOS ---
+import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.unit.sp
+import com.example.patas_y_colas.R // Asumiendo que R.drawable.gato existe
 import com.example.patas_y_colas.model.Pet
-import com.example.patas_y_colas.ui.theme.*
+import com.example.patas_y_colas.ui.theme.PetRed
+import com.example.patas_y_colas.ui.theme.PetTextDark
+
+@Composable
+// --- AÑADIDO: onLogoutClicked ---
+fun HeaderTopBar(onAddPetClicked: () -> Unit, onLogoutClicked: () -> Unit) {
+    // --- AÑADIDO: Estado para el menú ---
+    var showMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = "Mis Mascotas", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PetTextDark)
+
+        // Contenedor para el ícono y el menú
+        Box {
+            // Botón de Configuración (Tuerca)
+            IconButton(
+                // --- CAMBIO: Mostrar el menú al hacer clic ---
+                onClick = { showMenu = true }
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = PetTextDark)
+            }
+
+            // --- AÑADIDO: El menú desplegable ---
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+                modifier = Modifier.background(Color.White)
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Cerrar Sesión", color = PetRed) },
+                    onClick = onLogoutClicked, // Llama a la función de logout
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.Logout,
+                            contentDescription = "Cerrar Sesión",
+                            tint = PetRed
+                        )
+                    }
+                )
+                // (Aquí podrías añadir más opciones en el futuro)
+            }
+            // --- FIN DEL BLOQUE AÑADIDO ---
+        }
+    }
+}
 
 @Composable
 fun HeaderSection(
     pets: List<Pet>,
     selectedPet: Pet?,
     onPetSelected: (Pet) -> Unit,
-    onAddPetClicked: () -> Unit
+    onAddPetClicked: () -> Unit,
+    onLogoutClicked: () -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 50.dp, bottomEnd = 50.dp))
-            .background(PetSageGreen) // Nuevo color de cabecera
+            .padding(top = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(bottom = 24.dp)
+        HeaderTopBar(
+            onAddPetClicked = onAddPetClicked,
+            // --- PASAR LA FUNCIÓN AL TOP BAR ---
+            onLogoutClicked = onLogoutClicked
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Bienvenido", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                Icon(imageVector = Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(28.dp).clickable { /* TODO */ })
+            items(pets) { pet ->
+                PetAvatar(
+                    pet = pet,
+                    isSelected = pet == selectedPet,
+                    onPetSelected = { onPetSelected(pet) }
+                )
             }
-            Text(text = "Gestiona a tus mascotas", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.8f), modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
-            PetSelector(
-                pets = pets,
-                selectedPet = selectedPet,
-                onPetSelected = onPetSelected,
-                onAddPetClicked = onAddPetClicked
-            )
-        }
-    }
-}
-
-@Composable
-fun PetSelector(
-    pets: List<Pet>,
-    selectedPet: Pet?,
-    onPetSelected: (Pet) -> Unit,
-    onAddPetClicked: () -> Unit
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        contentPadding = PaddingValues(horizontal = 24.dp)
-    ) {
-        item { AddPetCircle(isSelected = selectedPet == null, onClick = onAddPetClicked) }
-        items(pets) { pet -> PetCircle(pet = pet, isSelected = pet == selectedPet, onClick = { onPetSelected(pet) }) }
-    }
-}
-
-@Composable
-fun AddPetCircle(
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val borderColor = if (isSelected) PetHighlightBlue else Color.White.copy(alpha = 0.2f)
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.2f))
-                .border(3.dp, borderColor, CircleShape)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar Mascota", modifier = Modifier.size(40.dp), tint = Color.White)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Agregar", color = Color.White, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-fun PetCircle(
-    pet: Pet,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val icon = when (pet.species.lowercase()) {
-        "perro" -> Icons.Filled.Pets
-        "gato" -> Icons.Filled.Favorite
-        else -> Icons.Filled.Star
-    }
-    val borderColor = if (isSelected) PetHighlightBlue else Color.White.copy(alpha = 0.5f)
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(PetBackground)
-                .border(3.dp, borderColor, CircleShape)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            if (pet.imageUri != null) {
-                AsyncImage(model = Uri.parse(pet.imageUri), contentDescription = pet.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else {
-                Icon(imageVector = icon, contentDescription = pet.name, modifier = Modifier.size(40.dp), tint = PetOchre)
+            item {
+                AddPetButton(onClick = onAddPetClicked)
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = pet.name, color = Color.White, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     }
 }
 
+@Composable
+fun PetAvatar(pet: Pet, isSelected: Boolean, onPetSelected: () -> Unit) {
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+    // TODO: Usar la imagen real (pet.imageUri) o una imagen por defecto
+    val imageRes = if (pet.species == "Gato") R.drawable.gato else R.drawable.gato // (Placeholder)
+
+    Image(
+        painter = painterResource(id = imageRes),
+        contentDescription = pet.name,
+        modifier = Modifier
+            .size(80.dp)
+            .clip(CircleShape)
+            .border(4.dp, borderColor, CircleShape)
+            .clickable(onClick = onPetSelected),
+        contentScale = ContentScale.Crop
+    )
+}
+
+@Composable
+fun AddPetButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(80.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Icons.Default.Add, contentDescription = "Añadir Mascota", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}

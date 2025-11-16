@@ -7,19 +7,18 @@ import com.example.patas_y_colas.data.network.RetrofitClient
 import com.example.patas_y_colas.data.network.TokenManager
 import com.example.patas_y_colas.model.Pet
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow // <--- IMPORTANTE: Asegúrate de importar StateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PetRepository(private val context: Context) {
 
     private val api = RetrofitClient.getClient(context)
 
-    // --- CAMBIO 1: Usamos MutableStateFlow para poder actualizar la lista dinámicamente ---
+    // (Tu StateFlow para las mascotas está perfecto)
     private val _pets = MutableStateFlow<List<Pet>>(emptyList())
-    // --- CORRECCIÓN AQUÍ: Cambiamos Flow por StateFlow ---
     val allPets: StateFlow<List<Pet>> = _pets.asStateFlow()
 
-    // --- CAMBIO 2: Función para recargar la lista desde la API ---
+    // Función para recargar la lista desde la API
     suspend fun refreshPets() {
         try {
             val petsFromApi = api.getAllPets()
@@ -35,7 +34,10 @@ class PetRepository(private val context: Context) {
         return try {
             val response = api.login(LoginRequest(email, pass))
             if (response.isSuccessful && response.body() != null) {
-                TokenManager.saveToken(context, response.body()!!.token)
+                // --- CORRECCIÓN AQUÍ ---
+                val authResponse = response.body()!!
+                // Usamos la nueva función para guardar AMBOS tokens
+                TokenManager.saveTokens(context, authResponse.token, authResponse.refreshToken)
                 true
             } else {
                 false
@@ -57,7 +59,10 @@ class PetRepository(private val context: Context) {
             )
             val response = api.register(request)
             if (response.isSuccessful && response.body() != null) {
-                TokenManager.saveToken(context, response.body()!!.token)
+                // --- CORRECCIÓN AQUÍ ---
+                val authResponse = response.body()!!
+                // Usamos la nueva función para guardar AMBOS tokens
+                TokenManager.saveTokens(context, authResponse.token, authResponse.refreshToken)
                 true
             } else {
                 false
@@ -68,11 +73,21 @@ class PetRepository(private val context: Context) {
         }
     }
 
+    // --- ¡NUEVA FUNCIÓN! ---
+    // Esta es la función que llamarás desde tu botón de "Cerrar Sesión"
+    fun logout() {
+        // Borra los tokens del dispositivo
+        TokenManager.clearTokens(context)
+        // Limpia la lista de mascotas en memoria para que no se vean en la UI
+        _pets.value = emptyList()
+    }
+
+
     // --- Crear mascota ---
+    // (Esta función no necesita cambios, el "Authenticator" hará la magia)
     suspend fun insert(pet: Pet) {
         try {
             api.createPet(pet)
-            // --- CAMBIO 3: Refrescamos la lista automáticamente después de insertar ---
             refreshPets()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -80,12 +95,12 @@ class PetRepository(private val context: Context) {
     }
 
     // --- Actualizar mascota ---
+    // (Esta función no necesita cambios)
     suspend fun update(pet: Pet) {
         val idToUpdate = pet.id
         if (idToUpdate != null) {
             try {
                 api.updatePet(idToUpdate, pet)
-                // --- CAMBIO 3: Refrescamos la lista automáticamente después de actualizar ---
                 refreshPets()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -96,12 +111,12 @@ class PetRepository(private val context: Context) {
     }
 
     // --- Eliminar mascota ---
+    // (Esta función no necesita cambios)
     suspend fun delete(pet: Pet) {
         val idToDelete = pet.id
         if (idToDelete != null) {
             try {
                 api.deletePet(idToDelete)
-                // --- CAMBIO 3: Refrescamos la lista automáticamente después de borrar ---
                 refreshPets()
             } catch (e: Exception) {
                 e.printStackTrace()

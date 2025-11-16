@@ -22,8 +22,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+// --- Imports Añadidos ---
+import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
+// --- Fin Imports ---
 import com.example.patas_y_colas.PetApplication
 import com.example.patas_y_colas.model.Pet
+import com.example.patas_y_colas.model.VaccineRecord // Importa VaccineRecord
 import com.example.patas_y_colas.ui.screens.menu.components.HeaderSection
 import com.example.patas_y_colas.ui.theme.screens.menu.components.PetForm
 import com.example.patas_y_colas.ui.theme.*
@@ -34,7 +39,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun MenuScreen() {
+fun MenuScreen(
+    // Recibe el NavController
+    navController: NavHostController
+) {
     val application = LocalContext.current.applicationContext as PetApplication
     val viewModel: MenuViewModel = viewModel(factory = MenuViewModelFactory(application.repository, application))
     val pets by viewModel.allPets.collectAsState()
@@ -50,6 +58,24 @@ fun MenuScreen() {
             selectedPet = pets.first()
         }
     }
+
+    // --- LÓGICA DE LOGOUT ---
+    val repository = (application as PetApplication).repository
+    val scope = rememberCoroutineScope()
+
+    val onLogoutClicked: () -> Unit = {
+        scope.launch {
+            // 1. Llama a la función del repositorio que borra los tokens
+            repository.logout()
+
+            // 2. Navega al login y limpia el historial
+            navController.navigate("login_screen") {
+                popUpTo(0) // Borra todas las pantallas anteriores
+            }
+        }
+    }
+    // --- FIN DE LÓGICA DE LOGOUT ---
+
 
     Surface(modifier = Modifier.fillMaxSize(), color = PetBackground) {
         when (windowSizeClass.widthSizeClass) {
@@ -72,7 +98,7 @@ fun MenuScreen() {
                     },
                     onFormAction = { action ->
                         when(action) {
-                            // CORRECCIÓN 1: Verificamos si el ID es null o 0 para saber si es nuevo
+                            // Corrección para guardar mascota (id null o 0)
                             is FormAction.Save -> {
                                 if (action.pet.id == null || action.pet.id == 0) {
                                     viewModel.insert(action.pet)
@@ -83,7 +109,10 @@ fun MenuScreen() {
                             is FormAction.Delete -> viewModel.delete(action.pet)
                         }
                         isFormVisible = false
-                    }
+                    },
+                    // --- Pasamos la función y el controller ---
+                    onLogoutClicked = onLogoutClicked,
+                    navController = navController
                 )
             }
             else -> {
@@ -94,7 +123,7 @@ fun MenuScreen() {
                     onAddPetClicked = { selectedPet = null },
                     onFormAction = { action ->
                         when(action) {
-                            // CORRECCIÓN 2: Aplicamos la misma lógica para pantallas grandes
+                            // Corrección para guardar mascota (id null o 0)
                             is FormAction.Save -> {
                                 if (action.pet.id == null || action.pet.id == 0) {
                                     viewModel.insert(action.pet)
@@ -105,7 +134,10 @@ fun MenuScreen() {
                             is FormAction.Delete -> viewModel.delete(action.pet)
                         }
                         selectedPet = null
-                    }
+                    },
+                    // --- Pasamos la función y el controller ---
+                    onLogoutClicked = onLogoutClicked,
+                    navController = navController
                 )
             }
         }
@@ -119,7 +151,10 @@ fun MenuScreenCompact(
     isFormVisible: Boolean,
     onPetSelected: (Pet) -> Unit,
     onAddPetClicked: () -> Unit,
-    onFormAction: (FormAction) -> Unit
+    onFormAction: (FormAction) -> Unit,
+    // --- Añadimos los parámetros ---
+    onLogoutClicked: () -> Unit,
+    navController: NavHostController
 ) {
     Column(
         modifier = Modifier
@@ -133,7 +168,9 @@ fun MenuScreenCompact(
             pets = pets,
             selectedPet = selectedPet,
             onPetSelected = onPetSelected,
-            onAddPetClicked = onAddPetClicked
+            onAddPetClicked = onAddPetClicked,
+            // --- Lo pasamos al Header ---
+            onLogoutClicked = onLogoutClicked
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -167,7 +204,10 @@ fun MenuScreenExpanded(
     selectedPet: Pet?,
     onPetSelected: (Pet) -> Unit,
     onAddPetClicked: () -> Unit,
-    onFormAction: (FormAction) -> Unit
+    onFormAction: (FormAction) -> Unit,
+    // --- Añadimos los parámetros ---
+    onLogoutClicked: () -> Unit,
+    navController: NavHostController
 ) {
     Row(
         modifier = Modifier
@@ -185,7 +225,9 @@ fun MenuScreenExpanded(
                 pets = pets,
                 selectedPet = selectedPet,
                 onPetSelected = onPetSelected,
-                onAddPetClicked = onAddPetClicked
+                onAddPetClicked = onAddPetClicked,
+                // --- Lo pasamos al Header ---
+                onLogoutClicked = onLogoutClicked
             )
             Spacer(modifier = Modifier.height(24.dp))
             ReminderSection(pets = pets)
@@ -223,8 +265,8 @@ private fun ReminderSection(pets: List<Pet>) {
         }.time
 
         pets.flatMap { pet ->
-            // --- CORRECCIÓN: Usamos la lista directa del modelo ---
-            val vaccineList = pet.vaccines
+            // Usamos la lista directa del modelo
+            val vaccineList: List<VaccineRecord> = pet.vaccines ?: emptyList() // Aseguramos que no sea null
 
             vaccineList.filter { vaccine ->
                 if (vaccine.vaccineName != null && vaccine.vaccineName.isNotBlank() &&
