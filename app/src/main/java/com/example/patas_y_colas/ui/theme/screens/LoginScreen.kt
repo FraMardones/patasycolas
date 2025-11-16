@@ -11,12 +11,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+// --- ¡CORRECCIÓN! ---
+// Eliminamos el 'import androidx.navigation.NavController' que causaba el conflicto
+import androidx.navigation.NavHostController // <- Esta es la única que necesitamos
 import com.example.patas_y_colas.PetApplication
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(navController: NavHostController) { // <- Usando NavHostController
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -68,9 +70,8 @@ fun LoginScreen(navController: NavController) {
                         val success = repository.login(email, password)
                         isLoading = false
                         if (success) {
-                            // Navegar al menú y limpiar la pila para que no puedan volver al login con "atrás"
                             navController.navigate("menu") {
-                                popUpTo("login") { inclusive = true }
+                                popUpTo(0) { inclusive = true }
                             }
                         } else {
                             Toast.makeText(context, "Error de credenciales", Toast.LENGTH_SHORT).show()
@@ -92,8 +93,8 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- NUEVO: Botón para ir a la pantalla de Registro ---
-            TextButton(onClick = { navController.navigate("register") }) {
+            // Botón para ir a la pantalla de Registro
+            TextButton(onClick = { navController.navigate("register") }) { // Asumiendo que la ruta es "register_screen"
                 Text("¿No tienes cuenta? Regístrate aquí")
             }
         }

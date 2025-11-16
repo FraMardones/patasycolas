@@ -131,7 +131,7 @@ fun PetForm(pet: Pet?, onSave: (Pet) -> Unit, onDelete: (Pet) -> Unit) {
                 Button(
                     onClick = {
                         // --- VALIDACIÓN DE SESIÓN ---
-                        if (TokenManager.getToken(context) == null) {
+                        if (TokenManager.getAccessToken(context) == null) {
                             Toast.makeText(context, "Debes iniciar sesión para guardar", Toast.LENGTH_LONG).show()
                         } else {
                             // Si hay sesión, procedemos normalmente

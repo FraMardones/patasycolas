@@ -23,12 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 // --- Imports Añadidos ---
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 // --- Fin Imports ---
 import com.example.patas_y_colas.PetApplication
 import com.example.patas_y_colas.model.Pet
 import com.example.patas_y_colas.model.VaccineRecord // Importa VaccineRecord
+import com.example.patas_y_colas.repository.PetRepository
 import com.example.patas_y_colas.ui.screens.menu.components.HeaderSection
 import com.example.patas_y_colas.ui.theme.screens.menu.components.PetForm
 import com.example.patas_y_colas.ui.theme.*
@@ -59,7 +61,7 @@ fun MenuScreen(
         }
     }
 
-    // --- LÓGICA DE LOGOUT ---
+    // --- LÓGICA DE LOGOUT (CORREGIDA) ---
     val repository = (application as PetApplication).repository
     val scope = rememberCoroutineScope()
 
@@ -68,9 +70,16 @@ fun MenuScreen(
             // 1. Llama a la función del repositorio que borra los tokens
             repository.logout()
 
-            // 2. Navega al login y limpia el historial
-            navController.navigate("login_screen") {
-                popUpTo(0) // Borra todas las pantallas anteriores
+            // 2. Navega al login y limpia el historial (ESTA ES LA PARTE CORREGIDA)
+            navController.navigate("login") { // <-- RUTA CORREGIDA a "login"
+
+                // Borra todo HASTA la pantalla inicial del grafo ("portada")
+                popUpTo(navController.graph.findStartDestination().id) {
+                    inclusive = true // También elimina "portada" de la pila
+                }
+
+                // Asegúrate de que "login" sea la única pantalla en la pila
+                launchSingleTop = true
             }
         }
     }
@@ -269,8 +278,8 @@ private fun ReminderSection(pets: List<Pet>) {
             val vaccineList: List<VaccineRecord> = pet.vaccines ?: emptyList() // Aseguramos que no sea null
 
             vaccineList.filter { vaccine ->
-                if (vaccine.vaccineName != null && vaccine.vaccineName.isNotBlank() &&
-                    vaccine.date != null && vaccine.date.isNotBlank()) {
+                if (vaccine.vaccineName.isNotBlank() &&
+                    vaccine.date.isNotBlank()) {
                     try {
                         val vaccineDate = dateFormat.parse(vaccine.date)
                         vaccineDate != null && !vaccineDate.before(today)
@@ -299,8 +308,8 @@ private fun ReminderSection(pets: List<Pet>) {
             reminders.forEach { (petName, vaccine) ->
                 ReminderCard(
                     petName = petName,
-                    vaccineName = vaccine.vaccineName ?: "Vacuna",
-                    date = vaccine.date ?: ""
+                    vaccineName = vaccine.vaccineName, // Ya no puede ser null por el filtro
+                    date = vaccine.date // Ya no puede ser null por el filtro
                 )
             }
         }
