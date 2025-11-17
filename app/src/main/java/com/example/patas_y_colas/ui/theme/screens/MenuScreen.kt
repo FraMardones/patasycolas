@@ -49,6 +49,9 @@ fun MenuScreen(
     val viewModel: MenuViewModel = viewModel(factory = MenuViewModelFactory(application.repository, application))
     val pets by viewModel.allPets.collectAsState()
 
+    // --- AÑADIDO: Recoger el estado del dato curioso ---
+    val catFact by viewModel.catFact.collectAsState()
+
     var selectedPet by remember { mutableStateOf<Pet?>(null) }
     var isFormVisible by remember { mutableStateOf(false) }
 
@@ -90,6 +93,23 @@ fun MenuScreen(
 
 
     Surface(modifier = Modifier.fillMaxSize(), color = PetBackground) {
+
+        // --- AÑADIDO: Diálogo para el dato curioso ---
+        if (catFact != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearFunFact() },
+                title = { Text("Dato Curioso Felino 🐱") },
+                text = { Text(catFact!!) },
+                icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearFunFact() }) {
+                        Text("¡Genial!")
+                    }
+                }
+            )
+        }
+        // ------------------------------------------
+
         when (windowSizeClass.widthSizeClass) {
             WindowWidthSizeClass.Compact -> {
                 MenuScreenCompact(
@@ -125,7 +145,8 @@ fun MenuScreen(
                     // --- Pasamos la función y el controller ---
                     onLogoutClicked = onLogoutClicked,
                     navController = navController,
-                    userName = userName // <-- PASAR NOMBRE
+                    userName = userName, // <-- PASAR NOMBRE
+                    onShowFactClicked = { viewModel.loadFunFact() } // <-- AÑADIDO
                 )
             }
             else -> {
@@ -151,7 +172,8 @@ fun MenuScreen(
                     // --- Pasamos la función y el controller ---
                     onLogoutClicked = onLogoutClicked,
                     navController = navController,
-                    userName = userName // <-- PASAR NOMBRE
+                    userName = userName, // <-- PASAR NOMBRE
+                    onShowFactClicked = { viewModel.loadFunFact() } // <-- AÑADIDO
                 )
             }
         }
@@ -169,7 +191,8 @@ fun MenuScreenCompact(
     // --- Añadimos los parámetros ---
     onLogoutClicked: () -> Unit,
     navController: NavHostController,
-    userName: String? // <-- RECIBIR NOMBRE
+    userName: String?, // <-- RECIBIR NOMBRE
+    onShowFactClicked: () -> Unit // <-- AÑADIDO
 ) {
     Column(
         modifier = Modifier
@@ -185,7 +208,8 @@ fun MenuScreenCompact(
             onPetSelected = onPetSelected,
             onAddPetClicked = onAddPetClicked,
             onLogoutClicked = onLogoutClicked,
-            userName = userName // <-- PASAR NOMBRE
+            userName = userName, // <-- PASAR NOMBRE
+            onShowFactClicked = onShowFactClicked // <-- AÑADIDO
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -223,7 +247,8 @@ fun MenuScreenExpanded(
     // --- Añadimos los parámetros ---
     onLogoutClicked: () -> Unit,
     navController: NavHostController,
-    userName: String? // <-- RECIBIR NOMBRE
+    userName: String?, // <-- RECIBIR NOMBRE
+    onShowFactClicked: () -> Unit // <-- AÑADIDO
 ) {
     Row(
         modifier = Modifier
@@ -244,7 +269,8 @@ fun MenuScreenExpanded(
                 onAddPetClicked = onAddPetClicked,
                 // --- Lo pasamos al Header ---
                 onLogoutClicked = onLogoutClicked,
-                userName = userName // <-- PASAR NOMBRE
+                userName = userName, // <-- PASAR NOMBRE
+                onShowFactClicked = onShowFactClicked // <-- AÑADIDO
             )
             Spacer(modifier = Modifier.height(24.dp))
             ReminderSection(pets = pets)

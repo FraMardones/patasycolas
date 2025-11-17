@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.patas_y_colas.model.Pet
 import com.example.patas_y_colas.notifications.NotificationScheduler
 import com.example.patas_y_colas.repository.PetRepository
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow // <-- AÑADIDO
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow // <-- AÑADIDO
 import kotlinx.coroutines.launch
 
 class MenuViewModel(
@@ -19,6 +19,11 @@ class MenuViewModel(
 
     // --- CAMBIO: Ahora solo nos suscribimos al StateFlow del repositorio ---
     val allPets: StateFlow<List<Pet>> = repository.allPets
+
+    // --- AÑADIDO: Estado para el dato curioso ---
+    private val _catFact = MutableStateFlow<String?>(null)
+    val catFact = _catFact.asStateFlow()
+    // ------------------------------------------
 
     // --- NUEVO: Bloque 'init' para la carga inicial ---
     init {
@@ -56,6 +61,19 @@ class MenuViewModel(
         NotificationScheduler.cancelNotificationsForPet(application, pet)
         repository.delete(pet)
     }
+
+    // --- AÑADIDO: Funciones para el dato curioso ---
+    fun loadFunFact() {
+        viewModelScope.launch {
+            _catFact.value = "Cargando..." // Mensaje de carga
+            _catFact.value = repository.getFunFact()
+        }
+    }
+
+    fun clearFunFact() {
+        _catFact.value = null
+    }
+    // -----------------------------------------
 }
 
 class MenuViewModelFactory(

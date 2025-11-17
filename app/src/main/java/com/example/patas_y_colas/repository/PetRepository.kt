@@ -17,6 +17,15 @@ class PetRepository(private val context: Context) {
     private val _pets = MutableStateFlow<List<Pet>>(emptyList())
     val allPets: StateFlow<List<Pet>> = _pets.asStateFlow()
 
+
+    suspend fun getFunFact(): String? {
+        return try {
+            api.getCatFact().fact
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "No se pudo cargar el dato curioso. Revisa tu conexión."
+        }
+    }
     suspend fun refreshPets() {
         try {
             val petsFromApi = api.getAllPets()

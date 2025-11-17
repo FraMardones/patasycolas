@@ -1,9 +1,14 @@
 package com.example.patas_y_colas.data.network
 
 import com.example.patas_y_colas.model.Pet
-import retrofit2.Call // <-- ¡Importante!
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.*
+
+data class CatFactResponse(
+    val fact: String,
+    val length: Int
+)
 
 interface ApiService {
 
@@ -27,9 +32,9 @@ interface ApiService {
     @DELETE("api/pets/{id}")
     suspend fun deletePet(@Path("id") id: Int): Response<Void>
 
-    // --- ¡NUEVO ENDPOINT! ---
-    // Esta versión es SÍNCRONA (usa Call) y es la que usará
-    // nuestro "recepcionista" (Authenticator) para refrescar el token.
     @POST("api/auth/refresh")
     fun refreshToken(@Body request: Map<String, String>): Call<AuthResponse>
+
+    @GET("https://catfact.ninja/fact")
+    suspend fun getCatFact(): CatFactResponse
 }
