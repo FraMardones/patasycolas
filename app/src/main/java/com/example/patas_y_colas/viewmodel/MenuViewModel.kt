@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.patas_y_colas.model.Pet
 import com.example.patas_y_colas.notifications.NotificationScheduler
 import com.example.patas_y_colas.repository.PetRepository
-import kotlinx.coroutines.flow.MutableStateFlow // <-- AÑADIDO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow // <-- AÑADIDO
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MenuViewModel(
@@ -17,28 +17,28 @@ class MenuViewModel(
     private val application: Application
 ) : ViewModel() {
 
-    // --- CAMBIO: Ahora solo nos suscribimos al StateFlow del repositorio ---
+    // --- (Esto está bien) ---
     val allPets: StateFlow<List<Pet>> = repository.allPets
 
-    // --- AÑADIDO: Estado para el dato curioso ---
     private val _catFact = MutableStateFlow<String?>(null)
     val catFact = _catFact.asStateFlow()
     // ------------------------------------------
 
-    // --- NUEVO: Bloque 'init' para la carga inicial ---
+    // --- ¡CORREGIDO! ---
+    // Tu repositorio usa 'refreshPets()'
     init {
-        // Le pedimos al repositorio que cargue la lista de mascotas
-        // tan pronto como el ViewModel se cree.
         viewModelScope.launch {
-            repository.refreshPets()
+            repository.refreshPets() // <-- CORREGIDO
         }
     }
 
+    // --- ¡CORREGIDO! ---
+    // Tu repositorio usa 'insert(pet)'
     fun insert(pet: Pet) = viewModelScope.launch {
-        // Ya no necesitamos 'refreshPets()' aquí, el repo lo hace solo
-        repository.insert(pet)
-        NotificationScheduler.scheduleNotifications(application, pet)
+        repository.insert(pet) // <-- CORREGIDO
 
+        // El resto de tu lógica de notificaciones
+        NotificationScheduler.scheduleNotifications(application, pet)
         pet.vaccines.lastOrNull()?.vaccineName?.let { vaccineName ->
             if(vaccineName.isNotBlank()) {
                 NotificationScheduler.sendTestNotification(application, pet.name, vaccineName)
@@ -46,10 +46,13 @@ class MenuViewModel(
         }
     }
 
+    // --- ¡CORREGIDO! ---
+    // Tu repositorio usa 'update(pet)'
     fun update(pet: Pet) = viewModelScope.launch {
-        repository.update(pet)
-        NotificationScheduler.scheduleNotifications(application, pet)
+        repository.update(pet) // <-- CORREGIDO
 
+        // El resto de tu lógica de notificaciones
+        NotificationScheduler.scheduleNotifications(application, pet)
         pet.vaccines.lastOrNull()?.vaccineName?.let { vaccineName ->
             if(vaccineName.isNotBlank()) {
                 NotificationScheduler.sendTestNotification(application, pet.name, vaccineName)
@@ -57,15 +60,17 @@ class MenuViewModel(
         }
     }
 
+    // --- ¡CORREGIDO! ---
+    // Tu repositorio usa 'delete(pet)'
     fun delete(pet: Pet) = viewModelScope.launch {
         NotificationScheduler.cancelNotificationsForPet(application, pet)
-        repository.delete(pet)
+        repository.delete(pet) // <-- CORREGIDO
     }
 
-    // --- AÑADIDO: Funciones para el dato curioso ---
+    // --- (Esto está bien) ---
     fun loadFunFact() {
         viewModelScope.launch {
-            _catFact.value = "Cargando..." // Mensaje de carga
+            _catFact.value = "Cargando..."
             _catFact.value = repository.getFunFact()
         }
     }
@@ -76,6 +81,7 @@ class MenuViewModel(
     // -----------------------------------------
 }
 
+// --- (La Factory está bien) ---
 class MenuViewModelFactory(
     private val repository: PetRepository,
     private val application: Application

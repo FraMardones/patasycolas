@@ -1,6 +1,8 @@
 package com.example.patas_y_colas.repository
 
 import android.content.Context
+import android.net.Uri
+import android.util.Log
 import com.example.patas_y_colas.data.network.LoginRequest
 import com.example.patas_y_colas.data.network.RegisterRequest
 import com.example.patas_y_colas.data.network.RetrofitClient
@@ -9,6 +11,12 @@ import com.example.patas_y_colas.model.Pet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
 
 class PetRepository(private val context: Context) {
 
@@ -36,18 +44,17 @@ class PetRepository(private val context: Context) {
         }
     }
 
-    // --- Login (MODIFICADO) ---
+    // --- Login (Sin cambios) ---
     suspend fun login(email: String, pass: String): Boolean {
         return try {
             val response = api.login(LoginRequest(email, pass))
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
-                // Guardamos los tokens Y el nombre
                 TokenManager.saveTokens(
                     context,
                     authResponse.token,
                     authResponse.refreshToken,
-                    authResponse.firstname // <-- AÑADIDO
+                    authResponse.firstname
                 )
                 true
             } else {
@@ -59,7 +66,7 @@ class PetRepository(private val context: Context) {
         }
     }
 
-    // --- Registro (MODIFICADO) ---
+    // --- Registro (Sin cambios) ---
     suspend fun register(nombre: String, apellido: String, email: String, pass: String): Boolean {
         return try {
             val request = RegisterRequest(
@@ -71,12 +78,11 @@ class PetRepository(private val context: Context) {
             val response = api.register(request)
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
-                // Guardamos los tokens Y el nombre
                 TokenManager.saveTokens(
                     context,
                     authResponse.token,
                     authResponse.refreshToken,
-                    authResponse.firstname // <-- AÑADIDO
+                    authResponse.firstname
                 )
                 true
             } else {
@@ -95,30 +101,69 @@ class PetRepository(private val context: Context) {
     }
 
 
-    // --- Funciones de Pet (Sin cambios) ---
+    // --- ¡CORREGIDO! ---
     suspend fun insert(pet: Pet) {
         try {
-            api.createPet(pet)
+            // 1. Crear partes de texto
+            val nameRB = pet.name.toRequestBody("text/plain".toMediaTypeOrNull())
+            val speciesRB = pet.species.toRequestBody("text/plain".toMediaTypeOrNull())
+            val breedRB = pet.breed.toRequestBody("text/plain".toMediaTypeOrNull())
+            val ageRB = pet.age.toRequestBody("text/plain".toMediaTypeOrNull())
+            val weightRB = pet.weight.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            // 2. Crear parte de imagen (con null-check)
+            if (pet.imageUri == null) {
+                Log.e("PetRepository", "Error: Intento de insertar mascota SIN imageUri.")
+                return // No se puede continuar sin imagen
+            }
+            val imageUri = Uri.parse(pet.imageUri) // Ahora es seguro
+            val imageFile = getFileFromUri(imageUri)
+            val imagePart = MultipartBody.Part.createFormData("imageFile", imageFile.name, imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull()))
+
+            // 3. Llamar a la API
+            api.createPet(nameRB, speciesRB, breedRB, ageRB, weightRB, imagePart)
+
             refreshPets()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("PetRepository", "Error al INSERTAR mascota", e)
         }
     }
 
+    // --- ¡CORREGIDO! ---
     suspend fun update(pet: Pet) {
         val idToUpdate = pet.id
         if (idToUpdate != null) {
             try {
-                api.updatePet(idToUpdate, pet)
+                // 1. Crear partes de texto
+                val nameRB = pet.name.toRequestBody("text/plain".toMediaTypeOrNull())
+                val speciesRB = pet.species.toRequestBody("text/plain".toMediaTypeOrNull())
+                val breedRB = pet.breed.toRequestBody("text/plain".toMediaTypeOrNull())
+                val ageRB = pet.age.toRequestBody("text/plain".toMediaTypeOrNull())
+                val weightRB = pet.weight.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                var imagePart: MultipartBody.Part? = null
+
+                // --- ¡ESTA ES TU LÍNEA CORREGIDA! ---
+                // Usamos un safe call (?.) y comparamos con 'true'
+                if (pet.imageUri?.startsWith("content://") == true) {
+                    val imageUri = Uri.parse(pet.imageUri) // Ahora es seguro
+                    val imageFile = getFileFromUri(imageUri)
+                    imagePart = MultipartBody.Part.createFormData("imageFile", imageFile.name, imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull()))
+                }
+
+                // 3. Llamar a la API
+                api.updatePet(idToUpdate, nameRB, speciesRB, breedRB, ageRB, weightRB, imagePart)
+
                 refreshPets()
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("PetRepository", "Error al ACTUALIZAR mascota", e)
             }
         } else {
-            println("Error: Intento de actualizar mascota con ID nulo.")
+            Log.e("PetRepository", "Error: Intento de actualizar mascota con ID nulo.")
         }
     }
 
+    // --- ¡CORREGIDO! ---
     suspend fun delete(pet: Pet) {
         val idToDelete = pet.id
         if (idToDelete != null) {
@@ -126,10 +171,21 @@ class PetRepository(private val context: Context) {
                 api.deletePet(idToDelete)
                 refreshPets()
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("PetRepository", "Error al BORRAR mascota", e)
             }
         } else {
-            println("Error: Intento de borrar mascota con ID nulo.")
+            Log.e("PetRepository", "Error: Intento de borrar mascota con ID nulo.")
         }
+    }
+
+    // --- Helper (Sin cambios) ---
+    private fun getFileFromUri(uri: Uri): File {
+        val inputStream = context.contentResolver.openInputStream(uri)!!
+        val file = File(context.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
+        val outputStream = FileOutputStream(file)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        return file
     }
 }

@@ -21,4 +21,12 @@ interface PetDao {
 
     @Query("SELECT * FROM pets WHERE id = :petId")
     fun getPetById(petId: Int): Flow<Pet>
+
+    // --- ¡NUEVO! AÑADE ESTO ---
+    @Query("DELETE FROM pets")
+    suspend fun deleteAllPets()
+
+    // --- ¡NUEVO! AÑADE ESTO ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(pets: List<Pet>)
 }
